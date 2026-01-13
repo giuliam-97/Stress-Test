@@ -90,21 +90,6 @@ df_filt = df_total[
 ]
 
 # =====================
-# KPI
-# =====================
-k1, k2 = st.columns(2)
-
-k1.metric(
-    "Totale Stress PnL",
-    f"{df_filt['Stress PnL'].sum():,.0f}"
-)
-
-k2.metric(
-    "Numero fogli selezionati",
-    len(df_filt)
-)
-
-# =====================
 # GRAFICO (SOLO TOTAL)
 # =====================
 fig = px.bar(
