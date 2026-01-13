@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📊 Stress Test – Stress PnL Dashboard (Total)")
+st.title("📊 Stress Test – Stress PnL Dashboard")
 
 FILE_PATH = Path("stress_test.xlsx")
 
