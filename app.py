@@ -3,73 +3,47 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
-# =====================
-# CONFIG
-# =====================
-st.set_page_config(
-    page_title="Stress Test Dashboard",
-    layout="wide"
-)
-
+st.set_page_config(page_title="Stress Test Dashboard", layout="wide")
 st.title("📊 Stress Test – Stress PnL Dashboard")
 
 FILE_PATH = Path("stress_test.xlsx")
 
-# =====================
-# LOAD DATA
-# =====================
 @st.cache_data
 def load_excel_data(path: Path) -> pd.DataFrame:
-    if not path.exists():
-        st.error(f"File non trovato: {path}")
-        st.stop()
-
     xls = pd.ExcelFile(path)
     all_data = []
 
     for sheet in xls.sheet_names:
-
-        # Split nome foglio → Portfolio / Scenario
-        try:
-            portfolio, scenario = sheet.split("_", 1)
-        except ValueError:
-            # Skip fogli non conformi
+        if "_" not in sheet:
             continue
 
-        df = pd.read_excel(
-            xls,
-            sheet_name=sheet,
-            usecols="A,B,R,U"
-        )
+        portfolio_sheet, scenario_sheet = sheet.split("_", 1)
 
-        df.columns = [
-            "Risk Group",
-            "Col_B",
-            "Stress PnL",
-            "Date"
-        ]
+        raw = pd.read_excel(xls, sheet_name=sheet)
 
-        df["Portfolio"] = portfolio
-        df["Scenario"] = scenario
+        df = raw[
+            [
+                "Risk Group",
+                "FTAG",
+                "Stress PnL",
+                "Date",
+                "Portfolio",
+                "Scenario"
+            ]
+        ].copy()
 
-        # Rimuovo Total (verrà ricalcolato)
+        df = df.dropna(subset=["Risk Group", "Stress PnL"])
         df = df[df["Risk Group"] != "Total"]
 
-        # Flag BRS
-        df["BRS_FLAG"] = (
-            df["Col_B"]
-            .astype(str)
-            .str.startswith(("BRS", "_BRS"))
-        )
+        df["BRS_FLAG"] = df["FTAG"].astype(str).str.startswith(("BRS", "_BRS"))
+
+        # fallback se Portfolio / Scenario non valorizzati
+        df["Portfolio"] = df["Portfolio"].fillna(portfolio_sheet)
+        df["Scenario"] = df["Scenario"].fillna(scenario_sheet)
 
         all_data.append(df)
 
-    if not all_data:
-        st.error("Nessun foglio valido trovato nel file Excel")
-        st.stop()
-
     return pd.concat(all_data, ignore_index=True)
-
 
 df = load_excel_data(FILE_PATH)
 
@@ -79,13 +53,13 @@ df = load_excel_data(FILE_PATH)
 st.sidebar.header("🎛️ Filtri")
 
 date_sel = st.sidebar.multiselect(
-    "📅 Data di analisi",
-    sorted(df["Date"].dropna().unique()),
-    default=sorted(df["Date"].dropna().unique())
+    "📅 Date",
+    sorted(df["Date"].unique()),
+    default=sorted(df["Date"].unique())
 )
 
 portfolio_sel = st.sidebar.multiselect(
-    "💼 Portafoglio",
+    "💼 Portfolio",
     sorted(df["Portfolio"].unique()),
     default=sorted(df["Portfolio"].unique())
 )
@@ -97,15 +71,15 @@ scenario_sel = st.sidebar.multiselect(
 )
 
 df_filt = df[
-    (df["Date"].isin(date_sel)) &
-    (df["Portfolio"].isin(portfolio_sel)) &
-    (df["Scenario"].isin(scenario_sel))
+    df["Date"].isin(date_sel)
+    & df["Portfolio"].isin(portfolio_sel)
+    & df["Scenario"].isin(scenario_sel)
 ]
 
 # =====================
 # AGGREGAZIONE
 # =====================
-agg_df = (
+agg = (
     df_filt
     .groupby(
         ["Date", "Portfolio", "Scenario", "BRS_FLAG"],
@@ -114,54 +88,28 @@ agg_df = (
     .sum()
 )
 
-agg_df["Aggregation Group"] = agg_df["BRS_FLAG"].map(
+agg["Group"] = agg["BRS_FLAG"].map(
     {True: "BRS", False: "Non-BRS"}
 )
-
-# =====================
-# KPI
-# =====================
-kpi1, kpi2 = st.columns(2)
-
-with kpi1:
-    st.metric(
-        "Totale Stress PnL",
-        f"{agg_df['Stress PnL'].sum():,.0f}"
-    )
-
-with kpi2:
-    st.metric(
-        "Totale BRS",
-        f"{agg_df.loc[agg_df['Aggregation Group']=='BRS','Stress PnL'].sum():,.0f}"
-    )
 
 # =====================
 # GRAFICO
 # =====================
 fig = px.bar(
-    agg_df,
+    agg,
     x="Scenario",
     y="Stress PnL",
-    color="Aggregation Group",
+    color="Group",
     facet_col="Portfolio",
     hover_data=["Date"],
-    title="Stress PnL Aggregato per Scenario e Portafoglio"
+    title="Stress PnL aggregato (BRS vs Non-BRS)"
 )
 
-fig.update_layout(
-    barmode="stack",
-    legend_title_text="Tipo Aggregazione"
-)
-
+fig.update_layout(barmode="stack")
 st.plotly_chart(fig, use_container_width=True)
 
 # =====================
-# TABELLA DETTAGLIO
+# TABELLA
 # =====================
-with st.expander("📄 Dati aggregati di dettaglio"):
-    st.dataframe(
-        agg_df.sort_values(
-            ["Date", "Portfolio", "Scenario"]
-        ),
-        use_container_width=True
-    )
+with st.expander("📄 Dati aggregati"):
+    st.dataframe(agg, use_container_width=True)
