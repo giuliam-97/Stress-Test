@@ -99,7 +99,7 @@ fig = px.bar(
     facet_col="Portfolio",
     color="Portfolio",
     hover_data=["Date"],
-    title="Stress PnL – Risk Group = Total (da Excel)"
+    title="Stress PnL"
 )
 
 fig.update_layout(
