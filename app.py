@@ -180,16 +180,24 @@ else:
         fig.update_layout(
             showlegend=False,
             xaxis_title="Scenario",
-            yaxis_title="Stress PnL",
+            yaxis_title="Stress PnL (bps)",
             height=450,
             margin=dict(l=40, r=40, t=60, b=40)
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
+        # ---- RINOMINA COLONNE (UI + EXCEL) ----
+        df_display = df_port.rename(
+            columns={
+                "Scenario": "Scenario",
+                "Stress PnL": "Stress PnL (bps)"
+            }
+        )[["Scenario", "Stress PnL (bps)"]]
+
         # ---- TABELLA ----
         st.dataframe(
-            df_port[["Scenario", "Stress PnL bps (click here to order)"]],
+            df_display,
             use_container_width=True,
             hide_index=True
         )
@@ -197,7 +205,7 @@ else:
         # ---- DOWNLOAD SINGOLO PORTAFOGLIO ----
         output_single = BytesIO()
         with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
-            df_port[["Scenario", "Stress PnL"]].to_excel(
+            df_display.to_excel(
                 writer,
                 sheet_name=p[:31],
                 index=False
@@ -211,10 +219,10 @@ else:
             key=f"download_{p}"
         )
 
-        excel_data[p] = df_port[["Scenario", "Stress PnL"]]
+        excel_data[p] = df_display
 
 # =====================
-# DOWNLOAD EXCEL MULTI-SHEET (SOLO SE > 1 PORTAFOGLIO)
+# DOWNLOAD EXCEL MULTI-SHEET
 # =====================
 if excel_data and mostra_excel_completo:
     output = BytesIO()
