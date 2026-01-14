@@ -212,9 +212,9 @@ if excel_data:
     from io import BytesIO
 
     output = BytesIO()
-   with pd.ExcelWriter(output, engine="openpyxl") as writer:
-    for portfolio, df_sheet in excel_data.items():
-        df_sheet.to_excel(writer, sheet_name=portfolio[:31], index=False)
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        for portfolio, df_sheet in excel_data.items():
+            df_sheet.to_excel(writer, sheet_name=portfolio[:31], index=False)
         writer.save()
     st.download_button(
         label="📥 Scarica tutte le tabelle in Excel",
