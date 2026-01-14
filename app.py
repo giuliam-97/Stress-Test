@@ -72,17 +72,32 @@ all_scenarios = sorted(df_total["Scenario"].unique())
 # =====================
 # SESSION STATE INIT
 # =====================
-if "portfolio_sel" not in st.session_state:
-    st.session_state.portfolio_sel = all_portfolios
-
-if "scenario_sel" not in st.session_state:
-    st.session_state.scenario_sel = all_scenarios
-
 if "portfolio_all" not in st.session_state:
     st.session_state.portfolio_all = True
 
 if "scenario_all" not in st.session_state:
     st.session_state.scenario_all = True
+
+if "portfolio_sel" not in st.session_state:
+    st.session_state.portfolio_sel = all_portfolios.copy()
+
+if "scenario_sel" not in st.session_state:
+    st.session_state.scenario_sel = all_scenarios.copy()
+
+# =====================
+# CALLBACK
+# =====================
+def toggle_portfolio_all():
+    if st.session_state.portfolio_all:
+        st.session_state.portfolio_sel = all_portfolios.copy()
+    else:
+        st.session_state.portfolio_sel = []
+
+def toggle_scenario_all():
+    if st.session_state.scenario_all:
+        st.session_state.scenario_sel = all_scenarios.copy()
+    else:
+        st.session_state.scenario_sel = []
 
 # =====================
 # FILTRI
@@ -98,38 +113,30 @@ date_sel = st.sidebar.date_input(
 )
 
 # ---------- PORTFOLIO ----------
-portfolio_sel = st.sidebar.multiselect(
+st.sidebar.multiselect(
     "💼 Portfolio",
     options=all_portfolios,
-    default=st.session_state.portfolio_sel,
+    key="portfolio_sel"
 )
 
-portfolio_all = st.sidebar.checkbox(
+st.sidebar.checkbox(
     "Select all portfolio",
-    value=(set(portfolio_sel) == set(all_portfolios))
+    key="portfolio_all",
+    on_change=toggle_portfolio_all
 )
-
-if portfolio_all:
-    st.session_state.portfolio_sel = all_portfolios
-else:
-    st.session_state.portfolio_sel = portfolio_sel
 
 # ---------- SCENARIO ----------
-scenario_sel = st.sidebar.multiselect(
+st.sidebar.multiselect(
     "🧪 Scenario",
     options=all_scenarios,
-    default=st.session_state.scenario_sel,
+    key="scenario_sel"
 )
 
-scenario_all = st.sidebar.checkbox(
+st.sidebar.checkbox(
     "Select all scenario",
-    value=(set(scenario_sel) == set(all_scenarios))
+    key="scenario_all",
+    on_change=toggle_scenario_all
 )
-
-if scenario_all:
-    st.session_state.scenario_sel = all_scenarios
-else:
-    st.session_state.scenario_sel = scenario_sel
 
 # =====================
 # FILTRO DATAFRAME
