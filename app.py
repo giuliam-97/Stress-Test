@@ -184,14 +184,31 @@ else:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # ---- TABELLA SOTTO IL GRAFICO ----
+        # ---- TABELLA ----
         st.dataframe(
             df_port[["Scenario", "Stress PnL"]],
             use_container_width=True,
             hide_index=True
         )
 
-        # ---- DATI PER EXCEL ----
+        # ---- DOWNLOAD EXCEL PER PORTAFOGLIO ----
+        output_single = BytesIO()
+        with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
+            df_port[["Scenario", "Stress PnL"]].to_excel(
+                writer,
+                sheet_name=p[:31],
+                index=False
+            )
+
+        st.download_button(
+            label="📥 Scarica la tabella in Excel",
+            data=output_single.getvalue(),
+            file_name=f"stress_pnl_{p}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key=f"download_{p}"
+        )
+
+        # ---- DATI PER EXCEL COMPLETO ----
         excel_data[p] = df_port[["Scenario", "Stress PnL"]]
 
 # =====================
