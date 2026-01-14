@@ -150,6 +150,12 @@ df_filt = df_total[
 ]
 
 # =====================
+# INIT VARIABILI (EVITA ERRORI SE df_filt È VUOTO)
+# =====================
+excel_data = {}
+mostra_excel_completo = False
+
+# =====================
 # GRAFICO + TABELLA PER PORTAFOGLIO
 # =====================
 if df_filt.empty:
