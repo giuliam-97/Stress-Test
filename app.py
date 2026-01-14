@@ -69,11 +69,20 @@ available_dates = sorted(df_total["Date"].unique())
 last_date = max(available_dates)
 
 # =====================
+# INIZIALIZZAZIONE STATE
+# =====================
+if "portfolio_sel" not in st.session_state:
+    st.session_state.portfolio_sel = sorted(df_total["Portfolio"].unique())
+
+if "scenario_sel" not in st.session_state:
+    st.session_state.scenario_sel = sorted(df_total["Scenario"].unique())
+
+# =====================
 # FILTRI
 # =====================
 st.sidebar.header("🎛️ Filtri")
 
-# 📅 Calendario con ultima data di default
+# 📅 Calendario
 date_sel = st.sidebar.date_input(
     "📅 Date",
     value=last_date,
@@ -81,22 +90,47 @@ date_sel = st.sidebar.date_input(
     max_value=max(available_dates)
 )
 
-portfolio_sel = st.sidebar.multiselect(
-    "💼 Portfolio",
-    sorted(df_total["Portfolio"].unique()),
-    default=sorted(df_total["Portfolio"].unique())
-)
+# --- PORTFOLIO ---
+col_p1, col_p2 = st.sidebar.columns([3, 1])
+with col_p1:
+    portfolio_sel = st.multiselect(
+        "💼 Portfolio",
+        sorted(df_total["Portfolio"].unique()),
+        default=st.session_state.portfolio_sel,
+        key="portfolio_multiselect"
+    )
 
-scenario_sel = st.sidebar.multiselect(
-    "🧪 Scenario",
-    sorted(df_total["Scenario"].unique()),
-    default=sorted(df_total["Scenario"].unique())
-)
+with col_p2:
+    if st.button("Select All", key="select_all_portfolio"):
+        st.session_state.portfolio_sel = sorted(df_total["Portfolio"].unique())
+        st.rerun()
 
+st.session_state.portfolio_sel = portfolio_sel
+
+# --- SCENARIO ---
+col_s1, col_s2 = st.sidebar.columns([3, 1])
+with col_s1:
+    scenario_sel = st.multiselect(
+        "🧪 Scenario",
+        sorted(df_total["Scenario"].unique()),
+        default=st.session_state.scenario_sel,
+        key="scenario_multiselect"
+    )
+
+with col_s2:
+    if st.button("Select All", key="select_all_scenario"):
+        st.session_state.scenario_sel = sorted(df_total["Scenario"].unique())
+        st.rerun()
+
+st.session_state.scenario_sel = scenario_sel
+
+# =====================
+# FILTRO DATAFRAME
+# =====================
 df_filt = df_total[
     (df_total["Date"] == date_sel)
-    & df_total["Portfolio"].isin(portfolio_sel)
-    & df_total["Scenario"].isin(scenario_sel)
+    & df_total["Portfolio"].isin(st.session_state.portfolio_sel)
+    & df_total["Scenario"].isin(st.session_state.scenario_sel)
 ]
 
 # =====================
@@ -109,7 +143,6 @@ else:
 
     portfolios = sorted(df_filt["Portfolio"].unique())
 
-    # max 3 grafici per riga
     cols_per_row = 3
     for i in range(0, len(portfolios), cols_per_row):
         cols = st.columns(cols_per_row)
