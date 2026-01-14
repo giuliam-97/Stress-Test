@@ -189,7 +189,7 @@ else:
 
         # ---- TABELLA ----
         st.dataframe(
-            df_port[["Scenario", "Stress PnL"]],
+            df_port[["Scenario", "Stress PnL bps (click here to order)"]],
             use_container_width=True,
             hide_index=True
         )
