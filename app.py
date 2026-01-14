@@ -5,14 +5,14 @@ from pathlib import Path
 from io import BytesIO
 
 # =====================
-# CONFIG
+# CONFIGURATION
 # =====================
 st.set_page_config(
     page_title="Stress Test Dashboard",
     layout="wide"
 )
 
-# Nasconde la ❌ nei multiselect
+# Hide ❌ in multiselect widgets
 st.markdown(
     """
     <style>
@@ -34,7 +34,7 @@ FILE_PATH = Path("stress_test.xlsx")
 @st.cache_data
 def load_excel_total(path: Path) -> pd.DataFrame:
     if not path.exists():
-        st.error(f"File non trovato: {path}")
+        st.error(f"File not found: {path}")
         st.stop()
 
     xls = pd.ExcelFile(path)
@@ -62,7 +62,7 @@ def load_excel_total(path: Path) -> pd.DataFrame:
         total_rows.append(df_total)
 
     if not total_rows:
-        st.error("Nessuna riga 'Total' trovata nei fogli Excel")
+        st.error("No 'Total' rows found in Excel sheets")
         st.stop()
 
     return pd.concat(total_rows, ignore_index=True)
@@ -71,7 +71,7 @@ def load_excel_total(path: Path) -> pd.DataFrame:
 df_total = load_excel_total(FILE_PATH)
 
 # =====================
-# PREPARAZIONE DATE
+# DATE PREPARATION
 # =====================
 df_total["Date"] = pd.to_datetime(df_total["Date"]).dt.date
 
@@ -94,7 +94,7 @@ if "scenario_sel" not in st.session_state:
     st.session_state.scenario_sel = all_scenarios.copy()
 
 # =====================
-# CALLBACK
+# CALLBACKS
 # =====================
 def toggle_portfolio_all():
     st.session_state.portfolio_sel = (
@@ -107,9 +107,9 @@ def toggle_scenario_all():
     )
 
 # =====================
-# FILTRI
+# FILTERS
 # =====================
-st.sidebar.header("🎛️ Filtri")
+st.sidebar.header("🎛️ Filters")
 
 date_sel = st.sidebar.date_input(
     "📅 Date",
@@ -124,7 +124,7 @@ st.sidebar.multiselect(
     key="portfolio_sel"
 )
 st.sidebar.checkbox(
-    "Select all portfolio",
+    "Select all portfolios",
     key="portfolio_all",
     on_change=toggle_portfolio_all
 )
@@ -135,13 +135,13 @@ st.sidebar.multiselect(
     key="scenario_sel"
 )
 st.sidebar.checkbox(
-    "Select all scenario",
+    "Select all scenarios",
     key="scenario_all",
     on_change=toggle_scenario_all
 )
 
 # =====================
-# FILTRO DATAFRAME
+# DATAFRAME FILTERING
 # =====================
 df_filt = df_total[
     (df_total["Date"] == date_sel)
@@ -150,32 +150,30 @@ df_filt = df_total[
 ]
 
 # =====================
-# INIT VARIABILI (EVITA ERRORI SE df_filt È VUOTO)
+# INIT VARIABLES (AVOID ERRORS IF df_filt IS EMPTY)
 # =====================
 excel_data = {}
-mostra_excel_completo = False
+show_full_excel = False
 
 # =====================
-# GRAFICO + TABELLA PER PORTAFOGLIO
+# CHART + TABLE BY PORTFOLIO
 # =====================
 if df_filt.empty:
-    st.warning("Nessun dato disponibile con i filtri selezionati")
+    st.warning("No data available with the selected filters")
 else:
-    st.subheader(f"📅 Data: {date_sel}")
+    st.subheader(f"📅 Date: {date_sel}")
 
-    portfolios_visibili = sorted(df_filt["Portfolio"].unique())
-    mostra_excel_completo = len(portfolios_visibili) > 1
+    visible_portfolios = sorted(df_filt["Portfolio"].unique())
+    show_full_excel = len(visible_portfolios) > 1
 
-    excel_data = {}
-
-    for p in portfolios_visibili:
+    for p in visible_portfolios:
         df_port = (
             df_filt[df_filt["Portfolio"] == p]
             .sort_values("Scenario")
             .copy()
         )
 
-        # ---- GRAFICO ----
+        # ---- CHART ----
         fig = px.bar(
             df_port,
             x="Scenario",
@@ -193,7 +191,7 @@ else:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # ---- RINOMINA COLONNE (UI + EXCEL) ----
+        # ---- RENAME COLUMNS (UI + EXCEL) ----
         df_display = df_port.rename(
             columns={
                 "Scenario": "Scenario",
@@ -201,7 +199,7 @@ else:
             }
         )[["Scenario", "Stress PnL bps (click here to order)"]]
 
-                # ---- DOWNLOAD SINGOLO PORTAFOGLIO ----
+        # ---- SINGLE PORTFOLIO EXCEL DOWNLOAD ----
         output_single = BytesIO()
         with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
             df_display.to_excel(
@@ -211,7 +209,7 @@ else:
             )
 
         st.download_button(
-            label="📥 Scarica la tabella in Excel",
+            label="📥 Download table as Excel",
             data=output_single.getvalue(),
             file_name=f"stress_pnl_{p}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -220,19 +218,17 @@ else:
 
         excel_data[p] = df_display
 
-        # ---- TABELLA ----
+        # ---- TABLE ----
         st.dataframe(
             df_display,
             use_container_width=True,
             hide_index=True
         )
 
-
-
 # =====================
-# DOWNLOAD EXCEL MULTI-SHEET
+# MULTI-SHEET EXCEL DOWNLOAD
 # =====================
-if excel_data and mostra_excel_completo:
+if excel_data and show_full_excel:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for portfolio, df_sheet in excel_data.items():
@@ -243,7 +239,7 @@ if excel_data and mostra_excel_completo:
             )
 
     st.download_button(
-        label="📥 Scarica tutte le tabelle in Excel",
+        label="📥 Download all tables as Excel",
         data=output.getvalue(),
         file_name="stress_pnl_per_portfolio.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
