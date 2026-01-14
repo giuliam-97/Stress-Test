@@ -35,7 +35,6 @@ def load_excel_total(path: Path) -> pd.DataFrame:
 
         raw = pd.read_excel(xls, sheet_name=sheet)
 
-        # SOLO riga Total
         df_total = raw[raw["Risk Group"] == "Total"].copy()
 
         if df_total.empty:
@@ -45,7 +44,6 @@ def load_excel_total(path: Path) -> pd.DataFrame:
             ["Risk Group", "Stress PnL", "Date", "Portfolio", "Scenario"]
         ]
 
-        # fallback se Portfolio / Scenario non compilati
         df_total["Portfolio"] = df_total["Portfolio"].fillna(portfolio_sheet)
         df_total["Scenario"] = df_total["Scenario"].fillna(scenario_sheet)
 
@@ -68,21 +66,30 @@ df_total["Date"] = pd.to_datetime(df_total["Date"]).dt.date
 available_dates = sorted(df_total["Date"].unique())
 last_date = max(available_dates)
 
+all_portfolios = sorted(df_total["Portfolio"].unique())
+all_scenarios = sorted(df_total["Scenario"].unique())
+
 # =====================
-# INIZIALIZZAZIONE STATE
+# SESSION STATE INIT
 # =====================
 if "portfolio_sel" not in st.session_state:
-    st.session_state.portfolio_sel = sorted(df_total["Portfolio"].unique())
+    st.session_state.portfolio_sel = all_portfolios
 
 if "scenario_sel" not in st.session_state:
-    st.session_state.scenario_sel = sorted(df_total["Scenario"].unique())
+    st.session_state.scenario_sel = all_scenarios
+
+if "portfolio_all" not in st.session_state:
+    st.session_state.portfolio_all = True
+
+if "scenario_all" not in st.session_state:
+    st.session_state.scenario_all = True
 
 # =====================
 # FILTRI
 # =====================
 st.sidebar.header("🎛️ Filtri")
 
-# 📅 Calendario
+# 📅 Date
 date_sel = st.sidebar.date_input(
     "📅 Date",
     value=last_date,
@@ -90,39 +97,39 @@ date_sel = st.sidebar.date_input(
     max_value=max(available_dates)
 )
 
-# --- PORTFOLIO ---
-col_p1, col_p2 = st.sidebar.columns([3, 1])
-with col_p1:
-    portfolio_sel = st.multiselect(
-        "💼 Portfolio",
-        sorted(df_total["Portfolio"].unique()),
-        default=st.session_state.portfolio_sel,
-        key="portfolio_multiselect"
-    )
+# ---------- PORTFOLIO ----------
+portfolio_sel = st.sidebar.multiselect(
+    "💼 Portfolio",
+    options=all_portfolios,
+    default=st.session_state.portfolio_sel,
+)
 
-with col_p2:
-    if st.button("Select All", key="select_all_portfolio"):
-        st.session_state.portfolio_sel = sorted(df_total["Portfolio"].unique())
-        st.rerun()
+portfolio_all = st.sidebar.checkbox(
+    "Select all portfolio",
+    value=(set(portfolio_sel) == set(all_portfolios))
+)
 
-st.session_state.portfolio_sel = portfolio_sel
+if portfolio_all:
+    st.session_state.portfolio_sel = all_portfolios
+else:
+    st.session_state.portfolio_sel = portfolio_sel
 
-# --- SCENARIO ---
-col_s1, col_s2 = st.sidebar.columns([3, 1])
-with col_s1:
-    scenario_sel = st.multiselect(
-        "🧪 Scenario",
-        sorted(df_total["Scenario"].unique()),
-        default=st.session_state.scenario_sel,
-        key="scenario_multiselect"
-    )
+# ---------- SCENARIO ----------
+scenario_sel = st.sidebar.multiselect(
+    "🧪 Scenario",
+    options=all_scenarios,
+    default=st.session_state.scenario_sel,
+)
 
-with col_s2:
-    if st.button("Select All", key="select_all_scenario"):
-        st.session_state.scenario_sel = sorted(df_total["Scenario"].unique())
-        st.rerun()
+scenario_all = st.sidebar.checkbox(
+    "Select all scenario",
+    value=(set(scenario_sel) == set(all_scenarios))
+)
 
-st.session_state.scenario_sel = scenario_sel
+if scenario_all:
+    st.session_state.scenario_sel = all_scenarios
+else:
+    st.session_state.scenario_sel = scenario_sel
 
 # =====================
 # FILTRO DATAFRAME
@@ -134,7 +141,7 @@ df_filt = df_total[
 ]
 
 # =====================
-# GRAFICI PER DATA → PORTAFOGLIO
+# GRAFICI
 # =====================
 if df_filt.empty:
     st.warning("Nessun dato disponibile con i filtri selezionati")
