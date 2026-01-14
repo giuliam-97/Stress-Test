@@ -182,7 +182,7 @@ else:
 # =====================
 # TABELLA
 # =====================
-with st.expander("📄 Dettaglio righe Total"):
+with st.expander("📄 Dettaglio granulare dello Stress PnL"):
     st.dataframe(
         df_filt.sort_values(
             ["Date", "Portfolio", "Scenario"]
