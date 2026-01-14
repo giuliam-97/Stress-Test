@@ -201,14 +201,7 @@ else:
             }
         )[["Scenario", "Stress PnL bps (click here to order)"]]
 
-        # ---- TABELLA ----
-        st.dataframe(
-            df_display,
-            use_container_width=True,
-            hide_index=True
-        )
-
-        # ---- DOWNLOAD SINGOLO PORTAFOGLIO ----
+                # ---- DOWNLOAD SINGOLO PORTAFOGLIO ----
         output_single = BytesIO()
         with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
             df_display.to_excel(
@@ -226,6 +219,15 @@ else:
         )
 
         excel_data[p] = df_display
+
+        # ---- TABELLA ----
+        st.dataframe(
+            df_display,
+            use_container_width=True,
+            hide_index=True
+        )
+
+
 
 # =====================
 # DOWNLOAD EXCEL MULTI-SHEET
