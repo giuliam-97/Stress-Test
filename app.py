@@ -191,7 +191,7 @@ else:
         df_display = df_port.rename(
             columns={
                 "Scenario": "Scenario",
-                "Stress PnL": "Stress PnL (bps)"
+                "Stress PnL": "Stress PnL bps (click here to order)"
             }
         )[["Scenario", "Stress PnL (bps)"]]
 
