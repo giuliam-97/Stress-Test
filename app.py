@@ -35,7 +35,7 @@ def load_excel_total(path: Path) -> pd.DataFrame:
 
         raw = pd.read_excel(xls, sheet_name=sheet)
 
-        # Seleziono SOLO la riga Total
+        # SOLO riga Total
         df_total = raw[raw["Risk Group"] == "Total"].copy()
 
         if df_total.empty:
@@ -90,24 +90,41 @@ df_filt = df_total[
 ]
 
 # =====================
-# GRAFICO (SOLO TOTAL)
+# GRAFICI PER DATA → PORTAFOGLIO
 # =====================
-fig = px.bar(
-    df_filt,
-    x="Scenario",
-    y="Stress PnL",
-    facet_col="Portfolio",
-    color="Portfolio",
-    hover_data=["Date"],
-    title="Stress PnL"
-)
+if df_filt.empty:
+    st.warning("Nessun dato disponibile con i filtri selezionati")
+else:
+    for d in sorted(df_filt["Date"].unique()):
+        st.subheader(f"📅 Data: {d}")
 
-fig.update_layout(
-    showlegend=False,
-    yaxis_title="Stress PnL"
-)
+        df_date = df_filt[df_filt["Date"] == d]
+        portfolios = sorted(df_date["Portfolio"].unique())
 
-st.plotly_chart(fig, use_container_width=True)
+        # max 3 grafici per riga
+        cols_per_row = 3
+        for i in range(0, len(portfolios), cols_per_row):
+            cols = st.columns(cols_per_row)
+
+            for col, p in zip(cols, portfolios[i:i + cols_per_row]):
+                with col:
+                    df_plot = df_date[df_date["Portfolio"] == p]
+
+                    fig = px.bar(
+                        df_plot,
+                        x="Scenario",
+                        y="Stress PnL",
+                        title=f"Portfolio {p}",
+                    )
+
+                    fig.update_layout(
+                        showlegend=False,
+                        xaxis_title="Scenario",
+                        yaxis_title="Stress PnL",
+                        height=400
+                    )
+
+                    st.plotly_chart(fig, use_container_width=True)
 
 # =====================
 # TABELLA
