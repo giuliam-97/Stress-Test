@@ -193,7 +193,7 @@ else:
                 "Scenario": "Scenario",
                 "Stress PnL": "Stress PnL bps (click here to order)"
             }
-        )[["Scenario", "Stress PnL (bps)"]]
+        )[["Scenario", "Stress PnL bps (click here to order)"]]
 
         # ---- TABELLA ----
         st.dataframe(
