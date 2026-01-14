@@ -180,12 +180,24 @@ else:
         st.plotly_chart(fig, use_container_width=True)
 
 # =====================
-# TABELLA
+# TABELLE PER PORTAFOGLIO
 # =====================
-with st.expander("📄 Dettaglio granulare dello Stress PnL"):
-    st.dataframe(
-        df_filt.sort_values(
-            ["Date", "Portfolio", "Scenario"]
-        ),
-        use_container_width=True
-    )
+st.subheader("📄 Dettaglio righe Total per Portfolio")
+
+for p in sorted(df_filt["Portfolio"].unique()):
+    df_port = df_filt[df_filt["Portfolio"] == p].copy()
+
+    # Ordina per Scenario
+    df_port = df_port.sort_values("Scenario")
+
+    # Espander per ogni portafoglio
+    with st.expander(f"💼 Portfolio {p}"):
+        # Mostra tabella con solo le colonne rilevanti
+        st.dataframe(
+            df_port[["Scenario", "Stress PnL"]],
+            use_container_width=True
+        )
+
+        # Aggiungi riga totale sotto la tabella
+        total_stress = df_port["Stress PnL"].sum()
+        st.markdown(f"**Total Stress PnL: {total_stress:,.2f}**")
