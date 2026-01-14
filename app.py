@@ -116,7 +116,8 @@ date_sel = st.sidebar.date_input(
 st.sidebar.multiselect(
     "💼 Portfolio",
     options=all_portfolios,
-    key="portfolio_sel"
+    key="portfolio_sel",
+    clearable=False  # ❌ rimosso pulsante X
 )
 
 st.sidebar.checkbox(
@@ -129,7 +130,8 @@ st.sidebar.checkbox(
 st.sidebar.multiselect(
     "🧪 Scenario",
     options=all_scenarios,
-    key="scenario_sel"
+    key="scenario_sel",
+    clearable=False  # ❌ rimosso pulsante X
 )
 
 st.sidebar.checkbox(
