@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from pathlib import Path
+from io import BytesIO
 
 # =====================
 # CONFIG
@@ -11,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 🔒 NASCONDE LA ❌ CLEAR ALL NEI MULTISELECT
+# Nasconde la ❌ nei multiselect
 st.markdown(
     """
     <style>
@@ -48,7 +49,6 @@ def load_excel_total(path: Path) -> pd.DataFrame:
         raw = pd.read_excel(xls, sheet_name=sheet)
 
         df_total = raw[raw["Risk Group"] == "Total"].copy()
-
         if df_total.empty:
             continue
 
@@ -150,20 +150,25 @@ df_filt = df_total[
 ]
 
 # =====================
-# GRAFICI (UNO SOTTO L'ALTRO)
+# GRAFICO + TABELLA PER PORTAFOGLIO
 # =====================
 if df_filt.empty:
     st.warning("Nessun dato disponibile con i filtri selezionati")
 else:
     st.subheader(f"📅 Data: {date_sel}")
 
-    portfolios = sorted(df_filt["Portfolio"].unique())
+    excel_data = {}
 
-    for p in portfolios:
-        df_plot = df_filt[df_filt["Portfolio"] == p]
+    for p in sorted(df_filt["Portfolio"].unique()):
+        df_port = (
+            df_filt[df_filt["Portfolio"] == p]
+            .sort_values("Scenario")
+            .copy()
+        )
 
+        # ---- GRAFICO ----
         fig = px.bar(
-            df_plot,
+            df_port,
             x="Scenario",
             y="Stress PnL",
             title=f"Portfolio {p}",
@@ -173,49 +178,35 @@ else:
             showlegend=False,
             xaxis_title="Scenario",
             yaxis_title="Stress PnL",
-            height=500,  # più alto per visione orizzontale
+            height=450,
             margin=dict(l=40, r=40, t=60, b=40)
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-# =====================
-# TABELLE PER PORTAFOGLIO + DOWNLOAD EXCEL
-# =====================
-st.subheader("📄 Dettaglio righe Total per Portfolio")
-
-# Dizionario per salvare i dati per l'Excel
-excel_data = {}
-
-for p in sorted(df_filt["Portfolio"].unique()):
-    df_port = df_filt[df_filt["Portfolio"] == p].copy()
-    df_port = df_port.sort_values("Scenario")
-
-    # Espander per ogni portafoglio
-    with st.expander(f"💼 Portfolio {p}"):
+        # ---- TABELLA SOTTO IL GRAFICO ----
         st.dataframe(
             df_port[["Scenario", "Stress PnL"]],
-            use_container_width=True
+            use_container_width=True,
+            hide_index=True
         )
 
-        total_stress = df_port["Stress PnL"].sum()
-        st.markdown(f"**Total Stress PnL: {total_stress:,.2f}**")
+        # ---- DATI PER EXCEL ----
+        excel_data[p] = df_port[["Scenario", "Stress PnL"]]
 
-    # Aggiungo riga totale per Excel
-    df_export = df_port[["Scenario", "Stress PnL"]].copy()
-    df_export.loc[len(df_export)] = ["Total", total_stress]
-
-    excel_data[p] = df_export
-
-# Pulsante per scaricare tutte le tabelle in un Excel multi-sheet
+# =====================
+# DOWNLOAD EXCEL MULTI-SHEET
+# =====================
 if excel_data:
-    from io import BytesIO
-
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for portfolio, df_sheet in excel_data.items():
-            df_sheet.to_excel(writer, sheet_name=portfolio[:31], index=False)
-        
+            df_sheet.to_excel(
+                writer,
+                sheet_name=portfolio[:31],
+                index=False
+            )
+
     st.download_button(
         label="📥 Scarica tutte le tabelle in Excel",
         data=output.getvalue(),
