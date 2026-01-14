@@ -61,14 +61,24 @@ def load_excel_total(path: Path) -> pd.DataFrame:
 df_total = load_excel_total(FILE_PATH)
 
 # =====================
+# PREPARAZIONE DATE
+# =====================
+df_total["Date"] = pd.to_datetime(df_total["Date"]).dt.date
+
+available_dates = sorted(df_total["Date"].unique())
+last_date = max(available_dates)
+
+# =====================
 # FILTRI
 # =====================
 st.sidebar.header("🎛️ Filtri")
 
-date_sel = st.sidebar.multiselect(
+# 📅 Calendario con ultima data di default
+date_sel = st.sidebar.date_input(
     "📅 Date",
-    sorted(df_total["Date"].unique()),
-    default=sorted(df_total["Date"].unique())
+    value=last_date,
+    min_value=min(available_dates),
+    max_value=max(available_dates)
 )
 
 portfolio_sel = st.sidebar.multiselect(
@@ -84,7 +94,7 @@ scenario_sel = st.sidebar.multiselect(
 )
 
 df_filt = df_total[
-    df_total["Date"].isin(date_sel)
+    (df_total["Date"] == date_sel)
     & df_total["Portfolio"].isin(portfolio_sel)
     & df_total["Scenario"].isin(scenario_sel)
 ]
@@ -95,36 +105,34 @@ df_filt = df_total[
 if df_filt.empty:
     st.warning("Nessun dato disponibile con i filtri selezionati")
 else:
-    for d in sorted(df_filt["Date"].unique()):
-        st.subheader(f"📅 Data: {d}")
+    st.subheader(f"📅 Data: {date_sel}")
 
-        df_date = df_filt[df_filt["Date"] == d]
-        portfolios = sorted(df_date["Portfolio"].unique())
+    portfolios = sorted(df_filt["Portfolio"].unique())
 
-        # max 3 grafici per riga
-        cols_per_row = 3
-        for i in range(0, len(portfolios), cols_per_row):
-            cols = st.columns(cols_per_row)
+    # max 3 grafici per riga
+    cols_per_row = 3
+    for i in range(0, len(portfolios), cols_per_row):
+        cols = st.columns(cols_per_row)
 
-            for col, p in zip(cols, portfolios[i:i + cols_per_row]):
-                with col:
-                    df_plot = df_date[df_date["Portfolio"] == p]
+        for col, p in zip(cols, portfolios[i:i + cols_per_row]):
+            with col:
+                df_plot = df_filt[df_filt["Portfolio"] == p]
 
-                    fig = px.bar(
-                        df_plot,
-                        x="Scenario",
-                        y="Stress PnL",
-                        title=f"Portfolio {p}",
-                    )
+                fig = px.bar(
+                    df_plot,
+                    x="Scenario",
+                    y="Stress PnL",
+                    title=f"Portfolio {p}",
+                )
 
-                    fig.update_layout(
-                        showlegend=False,
-                        xaxis_title="Scenario",
-                        yaxis_title="Stress PnL",
-                        height=400
-                    )
+                fig.update_layout(
+                    showlegend=False,
+                    xaxis_title="Scenario",
+                    yaxis_title="Stress PnL",
+                    height=400
+                )
 
-                    st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
 
 # =====================
 # TABELLA
