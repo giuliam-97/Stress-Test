@@ -157,9 +157,12 @@ if df_filt.empty:
 else:
     st.subheader(f"📅 Data: {date_sel}")
 
+    portfolios_visibili = sorted(df_filt["Portfolio"].unique())
+    mostra_excel_completo = len(portfolios_visibili) > 1
+
     excel_data = {}
 
-    for p in sorted(df_filt["Portfolio"].unique()):
+    for p in portfolios_visibili:
         df_port = (
             df_filt[df_filt["Portfolio"] == p]
             .sort_values("Scenario")
@@ -191,7 +194,7 @@ else:
             hide_index=True
         )
 
-        # ---- DOWNLOAD EXCEL PER PORTAFOGLIO ----
+        # ---- DOWNLOAD SINGOLO PORTAFOGLIO ----
         output_single = BytesIO()
         with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
             df_port[["Scenario", "Stress PnL"]].to_excel(
@@ -208,13 +211,12 @@ else:
             key=f"download_{p}"
         )
 
-        # ---- DATI PER EXCEL COMPLETO ----
         excel_data[p] = df_port[["Scenario", "Stress PnL"]]
 
 # =====================
-# DOWNLOAD EXCEL MULTI-SHEET
+# DOWNLOAD EXCEL MULTI-SHEET (SOLO SE > 1 PORTAFOGLIO)
 # =====================
-if excel_data:
+if excel_data and mostra_excel_completo:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for portfolio, df_sheet in excel_data.items():
