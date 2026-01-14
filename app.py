@@ -11,18 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# 🔒 NASCONDE LA ❌ CLEAR ALL NEI MULTISELECT
-st.markdown(
-    """
-    <style>
-    div[data-baseweb="select"] span[aria-label="Clear value"] {
-        display: none;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 st.title("📊 Stress Test – Stress PnL Dashboard")
 
 FILE_PATH = Path("stress_test.xlsx")
@@ -86,10 +74,13 @@ all_scenarios = sorted(df_total["Scenario"].unique())
 # =====================
 if "portfolio_all" not in st.session_state:
     st.session_state.portfolio_all = True
+
 if "scenario_all" not in st.session_state:
     st.session_state.scenario_all = True
+
 if "portfolio_sel" not in st.session_state:
     st.session_state.portfolio_sel = all_portfolios.copy()
+
 if "scenario_sel" not in st.session_state:
     st.session_state.scenario_sel = all_scenarios.copy()
 
@@ -97,20 +88,23 @@ if "scenario_sel" not in st.session_state:
 # CALLBACK
 # =====================
 def toggle_portfolio_all():
-    st.session_state.portfolio_sel = (
-        all_portfolios.copy() if st.session_state.portfolio_all else []
-    )
+    if st.session_state.portfolio_all:
+        st.session_state.portfolio_sel = all_portfolios.copy()
+    else:
+        st.session_state.portfolio_sel = []
 
 def toggle_scenario_all():
-    st.session_state.scenario_sel = (
-        all_scenarios.copy() if st.session_state.scenario_all else []
-    )
+    if st.session_state.scenario_all:
+        st.session_state.scenario_sel = all_scenarios.copy()
+    else:
+        st.session_state.scenario_sel = []
 
 # =====================
 # FILTRI
 # =====================
 st.sidebar.header("🎛️ Filtri")
 
+# 📅 Date
 date_sel = st.sidebar.date_input(
     "📅 Date",
     value=last_date,
@@ -118,26 +112,82 @@ date_sel = st.sidebar.date_input(
     max_value=max(available_dates)
 )
 
+# ---------- PORTFOLIO ----------
 st.sidebar.multiselect(
     "💼 Portfolio",
     options=all_portfolios,
     key="portfolio_sel"
 )
+
 st.sidebar.checkbox(
     "Select all portfolio",
     key="portfolio_all",
     on_change=toggle_portfolio_all
 )
 
+# ---------- SCENARIO ----------
 st.sidebar.multiselect(
     "🧪 Scenario",
     options=all_scenarios,
     key="scenario_sel"
 )
+
 st.sidebar.checkbox(
     "Select all scenario",
     key="scenario_all",
     on_change=toggle_scenario_all
 )
 
-# ===========
+# =====================
+# FILTRO DATAFRAME
+# =====================
+df_filt = df_total[
+    (df_total["Date"] == date_sel)
+    & df_total["Portfolio"].isin(st.session_state.portfolio_sel)
+    & df_total["Scenario"].isin(st.session_state.scenario_sel)
+]
+
+# =====================
+# GRAFICI
+# =====================
+if df_filt.empty:
+    st.warning("Nessun dato disponibile con i filtri selezionati")
+else:
+    st.subheader(f"📅 Data: {date_sel}")
+
+    portfolios = sorted(df_filt["Portfolio"].unique())
+
+    cols_per_row = 3
+    for i in range(0, len(portfolios), cols_per_row):
+        cols = st.columns(cols_per_row)
+
+        for col, p in zip(cols, portfolios[i:i + cols_per_row]):
+            with col:
+                df_plot = df_filt[df_filt["Portfolio"] == p]
+
+                fig = px.bar(
+                    df_plot,
+                    x="Scenario",
+                    y="Stress PnL",
+                    title=f"Portfolio {p}",
+                )
+
+                fig.update_layout(
+                    showlegend=False,
+                    xaxis_title="Scenario",
+                    yaxis_title="Stress PnL",
+                    height=400
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+# =====================
+# TABELLA
+# =====================
+with st.expander("📄 Dettaglio righe Total"):
+    st.dataframe(
+        df_filt.sort_values(
+            ["Date", "Portfolio", "Scenario"]
+        ),
+        use_container_width=True
+    )
