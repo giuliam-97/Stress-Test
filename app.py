@@ -180,24 +180,45 @@ else:
         st.plotly_chart(fig, use_container_width=True)
 
 # =====================
-# TABELLE PER PORTAFOGLIO
+# TABELLE PER PORTAFOGLIO + DOWNLOAD EXCEL
 # =====================
 st.subheader("📄 Dettaglio righe Total per Portfolio")
 
+# Dizionario per salvare i dati per l'Excel
+excel_data = {}
+
 for p in sorted(df_filt["Portfolio"].unique()):
     df_port = df_filt[df_filt["Portfolio"] == p].copy()
-
-    # Ordina per Scenario
     df_port = df_port.sort_values("Scenario")
 
     # Espander per ogni portafoglio
     with st.expander(f"💼 Portfolio {p}"):
-        # Mostra tabella con solo le colonne rilevanti
         st.dataframe(
             df_port[["Scenario", "Stress PnL"]],
             use_container_width=True
         )
 
-        # Aggiungi riga totale sotto la tabella
         total_stress = df_port["Stress PnL"].sum()
         st.markdown(f"**Total Stress PnL: {total_stress:,.2f}**")
+
+    # Aggiungo riga totale per Excel
+    df_export = df_port[["Scenario", "Stress PnL"]].copy()
+    df_export.loc[len(df_export)] = ["Total", total_stress]
+
+    excel_data[p] = df_export
+
+# Pulsante per scaricare tutte le tabelle in un Excel multi-sheet
+if excel_data:
+    from io import BytesIO
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        for portfolio, df_sheet in excel_data.items():
+            df_sheet.to_excel(writer, sheet_name=portfolio[:31], index=False)
+        writer.save()
+    st.download_button(
+        label="📥 Scarica tutte le tabelle in Excel",
+        data=output.getvalue(),
+        file_name="stress_pnl_per_portfolio.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
