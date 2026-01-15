@@ -312,12 +312,6 @@ else:
             how="inner"
         )
 
-        # Z-score
-        df_plot["z_score"] = (
-            (df_plot["Stress PnL"] - df_plot["peer_median"])
-            / df_plot["peer_std"]
-        )
-
         df_plot = df_plot.sort_values("Scenario")
 
         # =====================
@@ -384,12 +378,18 @@ df_table = df_plot.rename(
     columns={
         "Stress PnL": "Analysis Stress PnL",
         "peer_median": "Peer Median Stress PnL",
-        "z_score": "Z-score vs peers"
+        "q25": "Peer Q25 Stress PnL",
+        "q75": "Peer Q75 Stress PnL"
     }
 )[
-    ["Scenario", "Analysis Stress PnL", "Peer Median Stress PnL", "Z-score vs peers"]
+    [
+        "Scenario",
+        "Analysis Stress PnL",
+        "Peer Median Stress PnL",
+        "Peer Q25 Stress PnL",
+        "Peer Q75 Stress PnL"
+    ]
 ]
-
 st.dataframe(
     df_table,
     use_container_width=True,
