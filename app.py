@@ -300,7 +300,8 @@ else:
             .groupby("Scenario", as_index=False)
             .agg(
                 peer_median=("Stress PnL", "median"),
-                peer_std=("Stress PnL", "std")
+                q25=("Stress PnL", lambda x: x.quantile(0.25)),
+                q75=("Stress PnL", lambda x: x.quantile(0.75))
             )
         )
 
@@ -330,6 +331,33 @@ fig = px.scatter(
     labels={"Stress PnL": "Stress PnL (bps)"}
 )
 
+# ▬ Peer IQR band (Q25–Q75)
+fig.add_scatter(
+    x=df_plot["q75"],
+    y=df_plot["Scenario"],
+    mode="lines",
+    line=dict(width=0),
+    showlegend=False
+)
+
+fig.add_scatter(
+    x=df_plot["q25"],
+    y=df_plot["Scenario"],
+    mode="lines",
+    fill="tonextx",
+    fillcolor="rgba(255, 0, 0, 0.15)",
+    line=dict(width=0),
+    name="Peer IQR (25–75%)"
+)
+
+fig.add_scatter(
+    x=df_plot["peer_median"],
+    y=df_plot["Scenario"],
+    mode="markers",
+    marker=dict(size=8),
+    name="Peer median"
+)
+
         # ⭐ Analysis portfolio
 fig.add_scatter(
     x=df_plot["Stress PnL"],
@@ -337,14 +365,6 @@ fig.add_scatter(
     mode="markers",
     marker=dict(size=14, symbol="star"),
     name="Analysis portfolio"
-)
-
-fig.add_scatter(
-    x=df_plot["peer_median"],
-    y=df_plot["Scenario"],
-    mode="lines+markers",
-    line=dict(dash="dash"),
-    name="Peer median"
 )
 
 fig.update_layout(
