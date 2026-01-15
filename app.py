@@ -322,39 +322,38 @@ else:
         # =====================
         # PLOT
         # =====================
-        fig = px.scatter(
-            df_plot,
-            x="Scenario",
-            y="Stress PnL",
-            title=f"Peer Analysis – {analysis_portfolio}",
-            labels={"Stress PnL": "Stress PnL (bps)"}
+fig = px.scatter(
+    df_plot,
+    x="Stress PnL",
+    y="Scenario",
+    title=f"Peer Analysis – {analysis_portfolio}",
+    labels={"Stress PnL": "Stress PnL (bps)"}
+)
         )
 
         # ⭐ Analysis portfolio
-        fig.add_scatter(
-            x=df_plot["Scenario"],
-            y=df_plot["Stress PnL"],
-            mode="markers",
-            marker=dict(size=14, symbol="star"),
-            name="Analysis portfolio"
-        )
+fig.add_scatter(
+    x=df_plot["Stress PnL"],
+    y=df_plot["Scenario"],
+    mode="markers",
+    marker=dict(size=14, symbol="star"),
+    name="Analysis portfolio"
+)
 
-        # ▬ Peer median line
-        fig.add_scatter(
-            x=df_plot["Scenario"],
-            y=df_plot["peer_median"],
-            mode="lines+markers",
-            line=dict(dash="dash"),
-            name="Peer median"
-        )
+fig.add_scatter(
+    x=df_plot["peer_median"],
+    y=df_plot["Scenario"],
+    mode="lines+markers",
+    line=dict(dash="dash"),
+    name="Peer median"
+)
 
-        fig.update_layout(
-            height=500,
-            xaxis_title="Scenario",
-            yaxis_title="Stress PnL (bps)",
-            legend_title_text=""
-        )
-
+fig.update_layout(
+    height=500,
+    xaxis_title="Stress PnL (bps)",
+    yaxis_title="Scenario",
+    legend_title_text=""
+)
         st.plotly_chart(fig, use_container_width=True)
 
         # =====================
