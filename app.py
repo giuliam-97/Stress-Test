@@ -325,39 +325,31 @@ fig = px.scatter(
     labels={"Stress PnL": "Stress PnL (bps)"}
 )
 
-# ▬ Peer IQR band (Q25–Q75)
-fig.add_scatter(
-    x=df_plot["q75"],
-    y=df_plot["Scenario"],
-    mode="lines",
-    line=dict(width=0),
-    showlegend=False
-)
+# ▬ Peer band (IQR) – UNA PER SCENARIO
+for _, row in df_plot.iterrows():
+    fig.add_scatter(
+        x=[row["q25"], row["q75"]],
+        y=[row["Scenario"], row["Scenario"]],
+        mode="lines",
+        line=dict(width=14, color="rgba(255, 0, 0, 0.25)"),
+        showlegend=False
+    )
 
-fig.add_scatter(
-    x=df_plot["q25"],
-    y=df_plot["Scenario"],
-    mode="lines",
-    fill="tonextx",
-    fillcolor="rgba(255, 0, 0, 0.15)",
-    line=dict(width=0),
-    name="Peer IQR (25–75%)"
-)
-
+# ● Peer median
 fig.add_scatter(
     x=df_plot["peer_median"],
     y=df_plot["Scenario"],
     mode="markers",
-    marker=dict(size=8),
+    marker=dict(size=9, color="red"),
     name="Peer median"
 )
 
-        # ⭐ Analysis portfolio
+# ⭐ Analysis portfolio
 fig.add_scatter(
     x=df_plot["Stress PnL"],
     y=df_plot["Scenario"],
     mode="markers",
-    marker=dict(size=14, symbol="star"),
+    marker=dict(size=14, symbol="star", color="orange"),
     name="Analysis portfolio"
 )
 
@@ -367,7 +359,9 @@ fig.update_layout(
     yaxis_title="Scenario",
     legend_title_text=""
 )
+
 st.plotly_chart(fig, use_container_width=True)
+
 
 # =====================
 # TABLE (OPTIONAL)
