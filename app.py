@@ -366,27 +366,21 @@ st.plotly_chart(fig, use_container_width=True)
 # =====================
 # TABLE (OPTIONAL)
 # =====================
-st.subheader("📋 Peer comparison table")
+# st.subheader("📋 Peer comparison table")
 
-df_table = df_plot.rename(
-    columns={
-        "Stress PnL": "Analysis Stress PnL",
-        "peer_median": "Peer Median Stress PnL",
-        "q25": "Peer Q25 Stress PnL",
-        "q75": "Peer Q75 Stress PnL"
-    }
-)[
-    [
-        "Scenario",
-        "Analysis Stress PnL",
-        "Peer Median Stress PnL",
-        "Peer Q25 Stress PnL",
-        "Peer Q75 Stress PnL"
-    ]
-]
-st.dataframe(
-    df_table,
-    use_container_width=True,
-    hide_index=True
-)
+#df_table = df_plot.rename(
+    #columns={
+       # "Stress PnL": "Analysis Stress PnL",
+       # "peer_median": "Peer Median Stress PnL",
+       # "q25": "Peer Q25 Stress PnL",
+       # "q75": "Peer Q75 Stress PnL"})[
+    #[        "Scenario",
+        #"Analysis Stress PnL",
+        #"Peer Median Stress PnL",
+        #"Peer Q25 Stress PnL",
+        #"Peer Q75 Stress PnL"]]
+#st.dataframe(
+   # df_table,
+   # use_container_width=True,
+  #  hide_index=True)
 
