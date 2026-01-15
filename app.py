@@ -329,7 +329,6 @@ fig = px.scatter(
     title=f"Peer Analysis – {analysis_portfolio}",
     labels={"Stress PnL": "Stress PnL (bps)"}
 )
-        )
 
         # ⭐ Analysis portfolio
 fig.add_scatter(
