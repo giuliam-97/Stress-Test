@@ -353,26 +353,26 @@ fig.update_layout(
     yaxis_title="Scenario",
     legend_title_text=""
 )
-        st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
-        # =====================
-        # TABLE (OPTIONAL)
-        # =====================
-        st.subheader("📋 Peer comparison table")
+# =====================
+# TABLE (OPTIONAL)
+# =====================
+st.subheader("📋 Peer comparison table")
 
-        df_table = df_plot.rename(
-            columns={
-                "Stress PnL": "Analysis Stress PnL",
-                "peer_median": "Peer Median Stress PnL",
-                "z_score": "Z-score vs peers"
-            }
-        )[
-            ["Scenario", "Analysis Stress PnL", "Peer Median Stress PnL", "Z-score vs peers"]
-        ]
+df_table = df_plot.rename(
+    columns={
+        "Stress PnL": "Analysis Stress PnL",
+        "peer_median": "Peer Median Stress PnL",
+        "z_score": "Z-score vs peers"
+    }
+)[
+    ["Scenario", "Analysis Stress PnL", "Peer Median Stress PnL", "Z-score vs peers"]
+]
 
-        st.dataframe(
-            df_table,
-            use_container_width=True,
-            hide_index=True
-        )
+st.dataframe(
+    df_table,
+    use_container_width=True,
+    hide_index=True
+)
 
