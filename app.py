@@ -244,3 +244,137 @@ if excel_data and show_full_excel:
         file_name="stress_pnl_per_portfolio.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+# =====================
+# PEER ANALYSIS
+# =====================
+st.markdown("---")
+st.header("⭐ Peer Analysis")
+
+# La peer analysis ha senso solo con almeno 2 portafogli
+if df_filt["Portfolio"].nunique() < 2:
+    st.info("Peer analysis available only when at least two portfolios are selected.")
+else:
+    # ---- CONTROLS ----
+    col1, col2 = st.columns(2)
+
+    with col1:
+        analysis_portfolio = st.selectbox(
+            "⭐ Analysis portfolio",
+            options=sorted(df_filt["Portfolio"].unique())
+        )
+
+    with col2:
+        peer_portfolios = st.multiselect(
+            "◼ Peer portfolios",
+            options=[
+                p for p in sorted(df_filt["Portfolio"].unique())
+                if p != analysis_portfolio
+            ],
+            default=[
+                p for p in sorted(df_filt["Portfolio"].unique())
+                if p != analysis_portfolio
+            ]
+        )
+
+    if not peer_portfolios:
+        st.warning("Select at least one peer portfolio.")
+    else:
+        # =====================
+        # DATA PREPARATION
+        # =====================
+
+        # Analysis portfolio (puntuale)
+        df_analysis = df_filt[
+            df_filt["Portfolio"] == analysis_portfolio
+        ][["Scenario", "Stress PnL"]]
+
+        # Peer portfolios (puntuali)
+        df_peers = df_filt[
+            df_filt["Portfolio"].isin(peer_portfolios)
+        ][["Scenario", "Stress PnL"]]
+
+        # Peer median + dispersion (std)
+        df_peer_stats = (
+            df_peers
+            .groupby("Scenario", as_index=False)
+            .agg(
+                peer_median=("Stress PnL", "median"),
+                peer_std=("Stress PnL", "std")
+            )
+        )
+
+        # Merge
+        df_plot = df_analysis.merge(
+            df_peer_stats,
+            on="Scenario",
+            how="inner"
+        )
+
+        # Z-score
+        df_plot["z_score"] = (
+            (df_plot["Stress PnL"] - df_plot["peer_median"])
+            / df_plot["peer_std"]
+        )
+
+        df_plot = df_plot.sort_values("Scenario")
+
+        # =====================
+        # PLOT
+        # =====================
+        fig = px.scatter(
+            df_plot,
+            x="Scenario",
+            y="Stress PnL",
+            title=f"Peer Analysis – {analysis_portfolio}",
+            labels={"Stress PnL": "Stress PnL (bps)"}
+        )
+
+        # ⭐ Analysis portfolio
+        fig.add_scatter(
+            x=df_plot["Scenario"],
+            y=df_plot["Stress PnL"],
+            mode="markers",
+            marker=dict(size=14, symbol="star"),
+            name="Analysis portfolio"
+        )
+
+        # ▬ Peer median line
+        fig.add_scatter(
+            x=df_plot["Scenario"],
+            y=df_plot["peer_median"],
+            mode="lines+markers",
+            line=dict(dash="dash"),
+            name="Peer median"
+        )
+
+        fig.update_layout(
+            height=500,
+            xaxis_title="Scenario",
+            yaxis_title="Stress PnL (bps)",
+            legend_title_text=""
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # =====================
+        # TABLE (OPTIONAL)
+        # =====================
+        st.subheader("📋 Peer comparison table")
+
+        df_table = df_plot.rename(
+            columns={
+                "Stress PnL": "Analysis Stress PnL",
+                "peer_median": "Peer Median Stress PnL",
+                "z_score": "Z-score vs peers"
+            }
+        )[
+            ["Scenario", "Analysis Stress PnL", "Peer Median Stress PnL", "Z-score vs peers"]
+        ]
+
+        st.dataframe(
+            df_table,
+            use_container_width=True,
+            hide_index=True
+        )
+
