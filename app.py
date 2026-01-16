@@ -363,9 +363,9 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 
- =====================
- TABLE (OPTIONAL)
- =====================
+ #=====================
+# TABLE (OPTIONAL)
+ #=====================
  st.subheader("📋 Peer comparison table")
 
 df_table = df_plot.rename(
