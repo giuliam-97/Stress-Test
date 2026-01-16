@@ -392,7 +392,7 @@ with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
 st.download_button(
     label="📥 Download table as Excel",
     data=output_single.getvalue(),
-    file_name=f"Peer comparison table_{p}.xlsx",
+    file_name=f"Peer comparison table.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     key=f"download_{p}"
 )
