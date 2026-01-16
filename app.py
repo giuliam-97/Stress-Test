@@ -45,7 +45,6 @@ def load_excel_total(path: Path) -> pd.DataFrame:
             continue
 
         portfolio_sheet, scenario_sheet = sheet.split("_", 1)
-
         raw = pd.read_excel(xls, sheet_name=sheet)
 
         df_total = raw[raw["Risk Group"] == "Total"].copy()
@@ -66,7 +65,6 @@ def load_excel_total(path: Path) -> pd.DataFrame:
         st.stop()
 
     return pd.concat(total_rows, ignore_index=True)
-
 
 df_total = load_excel_total(FILE_PATH)
 
@@ -141,7 +139,7 @@ st.sidebar.checkbox(
 )
 
 # =====================
-# DATAFRAME FILTERING
+# DATA FILTERING
 # =====================
 df_filt = df_total[
     (df_total["Date"] == date_sel)
@@ -149,11 +147,7 @@ df_filt = df_total[
     & df_total["Scenario"].isin(st.session_state.scenario_sel)
 ]
 
-# =====================
-# INIT VARIABLES (AVOID ERRORS IF df_filt IS EMPTY)
-# =====================
 excel_data = {}
-show_full_excel = False
 
 # =====================
 # CHART + TABLE BY PORTFOLIO
@@ -164,16 +158,13 @@ else:
     st.subheader(f"📅 Date: {date_sel}")
 
     visible_portfolios = sorted(df_filt["Portfolio"].unique())
-    show_full_excel = len(visible_portfolios) > 1
 
     for p in visible_portfolios:
         df_port = (
             df_filt[df_filt["Portfolio"] == p]
             .sort_values("Scenario")
-            .copy()
         )
 
-        # ---- CHART ----
         fig = px.bar(
             df_port,
             x="Scenario",
@@ -185,28 +176,22 @@ else:
             showlegend=False,
             xaxis_title="Scenario",
             yaxis_title="Stress PnL (bps)",
-            height=450,
-            margin=dict(l=40, r=40, t=60, b=40)
+            height=450
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # ---- RENAME COLUMNS (UI + EXCEL) ----
         df_display = df_port.rename(
             columns={
-                "Scenario": "Scenario",
-                "Stress PnL": "Stress PnL bps (click here to order)"
+                "Stress PnL": "Stress PnL bps"
             }
-        )[["Scenario", "Stress PnL bps (click here to order)"]]
+        )[["Scenario", "Stress PnL bps"]]
 
-        # ---- SINGLE PORTFOLIO EXCEL DOWNLOAD ----
+        excel_data[p] = df_display
+
         output_single = BytesIO()
         with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
-            df_display.to_excel(
-                writer,
-                sheet_name=p[:31],
-                index=False
-            )
+            df_display.to_excel(writer, sheet_name=p[:31], index=False)
 
         st.download_button(
             label="📥 Download table as Excel",
@@ -216,27 +201,16 @@ else:
             key=f"download_{p}"
         )
 
-        excel_data[p] = df_display
-
-        # ---- TABLE ----
-        st.dataframe(
-            df_display,
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 # =====================
-# MULTI-SHEET EXCEL DOWNLOAD
+# MULTI-SHEET EXCEL
 # =====================
-if excel_data and show_full_excel:
+if len(excel_data) > 1:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for portfolio, df_sheet in excel_data.items():
-            df_sheet.to_excel(
-                writer,
-                sheet_name=portfolio[:31],
-                index=False
-            )
+            df_sheet.to_excel(writer, sheet_name=portfolio[:31], index=False)
 
     st.download_button(
         label="📥 Download all tables as Excel",
@@ -251,11 +225,9 @@ if excel_data and show_full_excel:
 st.markdown("---")
 st.header("⭐ Peer Analysis")
 
-# La peer analysis ha senso solo con almeno 2 portafogli
 if df_filt["Portfolio"].nunique() < 2:
     st.info("Peer analysis available only when at least two portfolios are selected.")
 else:
-    # ---- CONTROLS ----
     col1, col2 = st.columns(2)
 
     with col1:
@@ -267,135 +239,91 @@ else:
     with col2:
         peer_portfolios = st.multiselect(
             "◼ Peer portfolios",
-            options=[
-                p for p in sorted(df_filt["Portfolio"].unique())
-                if p != analysis_portfolio
-            ],
-            default=[
-                p for p in sorted(df_filt["Portfolio"].unique())
-                if p != analysis_portfolio
-            ]
+            options=[p for p in df_filt["Portfolio"].unique() if p != analysis_portfolio],
+            default=[p for p in df_filt["Portfolio"].unique() if p != analysis_portfolio]
         )
 
-    if not peer_portfolios:
-        st.warning("Select at least one peer portfolio.")
-    else:
-        # =====================
-        # DATA PREPARATION
-        # =====================
+    if peer_portfolios:
+        df_analysis = df_filt[df_filt["Portfolio"] == analysis_portfolio][
+            ["Scenario", "Stress PnL"]
+        ]
 
-        # Analysis portfolio (puntuale)
-        df_analysis = df_filt[
-            df_filt["Portfolio"] == analysis_portfolio
-        ][["Scenario", "Stress PnL"]]
+        df_peers = df_filt[df_filt["Portfolio"].isin(peer_portfolios)][
+            ["Scenario", "Stress PnL"]
+        ]
 
-        # Peer portfolios (puntuali)
-        df_peers = df_filt[
-            df_filt["Portfolio"].isin(peer_portfolios)
-        ][["Scenario", "Stress PnL"]]
+        df_peer_stats = df_peers.groupby("Scenario", as_index=False).agg(
+            peer_median=("Stress PnL", "median"),
+            q25=("Stress PnL", lambda x: x.quantile(0.25)),
+            q75=("Stress PnL", lambda x: x.quantile(0.75))
+        )
 
-        # Peer median + dispersion (std)
-        df_peer_stats = (
-            df_peers
-            .groupby("Scenario", as_index=False)
-            .agg(
-                peer_median=("Stress PnL", "median"),
-                q25=("Stress PnL", lambda x: x.quantile(0.25)),
-                q75=("Stress PnL", lambda x: x.quantile(0.75))
+        df_plot = df_analysis.merge(df_peer_stats, on="Scenario")
+
+        fig = px.scatter(
+            df_plot,
+            x="Stress PnL",
+            y="Scenario",
+            title=f"Peer Analysis – {analysis_portfolio}",
+        )
+
+        for _, r in df_plot.iterrows():
+            fig.add_scatter(
+                x=[r["q25"], r["q75"]],
+                y=[r["Scenario"], r["Scenario"]],
+                mode="lines",
+                line=dict(width=14, color="rgba(255,0,0,0.25)"),
+                showlegend=False
             )
+
+        fig.add_scatter(
+            x=df_plot["peer_median"],
+            y=df_plot["Scenario"],
+            mode="markers",
+            marker=dict(size=9, color="red"),
+            name="Peer median"
         )
 
-        # Merge
-        df_plot = df_analysis.merge(
-            df_peer_stats,
-            on="Scenario",
-            how="inner"
+        fig.add_scatter(
+            x=df_plot["Stress PnL"],
+            y=df_plot["Scenario"],
+            mode="markers",
+            marker=dict(size=14, symbol="star", color="orange"),
+            name="Analysis portfolio"
         )
 
-        df_plot = df_plot.sort_values("Scenario")
+        st.plotly_chart(fig, use_container_width=True)
 
         # =====================
-        # PLOT
+        # TABLE + EXCEL
         # =====================
-fig = px.scatter(
-    df_plot,
-    x="Stress PnL",
-    y="Scenario",
-    title=f"Peer Analysis – {analysis_portfolio}",
-    labels={"Stress PnL": "Stress PnL (bps)"}
-)
+        df_table = df_plot.rename(
+            columns={
+                "Stress PnL": "Analysis Stress PnL",
+                "peer_median": "Peer Median Stress PnL",
+                "q25": "Peer Q25 Stress PnL",
+                "q75": "Peer Q75 Stress PnL"
+            }
+        )[
+            [
+                "Scenario",
+                "Analysis Stress PnL",
+                "Peer Median Stress PnL",
+                "Peer Q25 Stress PnL",
+                "Peer Q75 Stress PnL"
+            ]
+        ]
 
-# ▬ Peer band (IQR) – UNA PER SCENARIO
-for _, row in df_plot.iterrows():
-    fig.add_scatter(
-        x=[row["q25"], row["q75"]],
-        y=[row["Scenario"], row["Scenario"]],
-        mode="lines",
-        line=dict(width=14, color="rgba(255, 0, 0, 0.25)"),
-        showlegend=False
-    )
+        st.subheader("📋 Peer comparison table")
+        st.dataframe(df_table, use_container_width=True, hide_index=True)
 
-# ● Peer median
-fig.add_scatter(
-    x=df_plot["peer_median"],
-    y=df_plot["Scenario"],
-    mode="markers",
-    marker=dict(size=9, color="red"),
-    name="Peer median"
-)
+        output_peer = BytesIO()
+        with pd.ExcelWriter(output_peer, engine="openpyxl") as writer:
+            df_table.to_excel(writer, sheet_name="Peer Comparison", index=False)
 
-# ⭐ Analysis portfolio
-fig.add_scatter(
-    x=df_plot["Stress PnL"],
-    y=df_plot["Scenario"],
-    mode="markers",
-    marker=dict(size=14, symbol="star", color="orange"),
-    name="Analysis portfolio"
-)
-
-fig.update_layout(
-    height=500,
-    xaxis_title="Stress PnL (bps)",
-    yaxis_title="Scenario",
-    legend_title_text=""
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
- #=====================
-# TABLE (OPTIONAL)
- #=====================
-st.subheader("📋 Peer comparison table")
-
-df_table = df_plot.rename(
-    columns={
-        "Stress PnL": "Analysis Stress PnL",
-        "peer_median": "Peer Median Stress PnL",
-        "q25": "Peer Q25 Stress PnL",
-        "q75": "Peer Q75 Stress PnL"})[
-    [        "Scenario",
-        "Analysis Stress PnL",
-        "Peer Median Stress PnL",
-        "Peer Q25 Stress PnL",
-        "Peer Q75 Stress PnL"]]
-st.dataframe(
-    df_table,
-    use_container_width=True,
-    hide_index=True)
-
-    # ---- SINGLE PORTFOLIO EXCEL DOWNLOAD ----
-output_single = BytesIO()
-with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
-    df_display.to_excel(writer,sheet_name=p[:31],index=False)
-
-st.download_button(
-    label="📥 Download table as Excel",
-    data=output_single.getvalue(),
-    file_name=f"Peer comparison table.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    key=f"download_{p}"
-)
-
-excel_data[p] = df_display
-
+        st.download_button(
+            label="📥 Download peer comparison table as Excel",
+            data=output_peer.getvalue(),
+            file_name="peer_comparison_table.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
