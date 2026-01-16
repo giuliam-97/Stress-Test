@@ -298,17 +298,7 @@ else:
         # TABLE + EXCEL
         # =====================
 
-        output_peer = BytesIO()
-        with pd.ExcelWriter(output_peer, engine="openpyxl") as writer:
-            df_table.to_excel(writer, sheet_name="Peer Comparison", index=False)
-
-        st.download_button(
-            label="📥 Download peer comparison table as Excel",
-            data=output_peer.getvalue(),
-            file_name="peer_comparison_table.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        
+       
         df_table = df_plot.rename(
             columns={
                 "Stress PnL": "Analysis Stress PnL",
@@ -329,4 +319,14 @@ else:
         st.subheader("📋 Peer comparison table")
         st.dataframe(df_table, use_container_width=True, hide_index=True)
 
+        output_peer = BytesIO()
+        with pd.ExcelWriter(output_peer, engine="openpyxl") as writer:
+            df_table.to_excel(writer, sheet_name="Peer Comparison", index=False)
+
+        st.download_button(
+            label="📥 Download peer comparison table as Excel",
+            data=output_peer.getvalue(),
+            file_name="peer_comparison_table.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
