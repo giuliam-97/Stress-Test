@@ -386,7 +386,7 @@ st.dataframe(
 
     # ---- SINGLE PORTFOLIO EXCEL DOWNLOAD ----
 output_single = BytesIO()
-    with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
+with pd.ExcelWriter(output_single, engine="openpyxl") as writer:
     df_display.to_excel(writer,sheet_name=p[:31],index=False)
 
 st.download_button(
